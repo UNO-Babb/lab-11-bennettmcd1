@@ -2,40 +2,41 @@
 #Name: Bennett McDonald
 #Date: 4/30/25
 #Assignment: grocery sim
-import simpy
 import random
+import time
 
 eventLog = []
 waitingShoppers = []
 idleTime = 0
 
-def shopper(env, id):
-    arrive = env.now
+def shopper(id):
+    arrive = time.time()
     items = random.randint(5, 20)
     shoppingTime = items // 2
-    yield env.timeout(shoppingTime)
-    waitingShoppers.append((id, items, arrive, env.now))
+    time.sleep(shoppingTime)
+    done_shopping = time.time()
+    waitingShoppers.append((id, items, arrive, done_shopping))
 
-def checker(env):
+def checker():
     global idleTime
     while True:
         while len(waitingShoppers) == 0:
             idleTime += 1
-            yield env.timeout(1)
+            time.sleep(1)
 
         customer = waitingShoppers.pop(0)
         items = customer[1]
         checkoutTime = items // 10 + 1
-        yield env.timeout(checkoutTime)
+        time.sleep(checkoutTime)
 
-        eventLog.append((customer[0], customer[1], customer[2], customer[3], env.now))
+        eventLog.append((customer[0], customer[1], customer[2], customer[3], time.time()))
 
-def customerArrival(env):
+def customerArrival():
     customerNumber = 0
     while True:
         customerNumber += 1
-        env.process(shopper(env, customerNumber))
-        yield env.timeout(2)
+        shopper(customerNumber)
+        time.sleep(2)
 
 def processResults():
     totalWait = 0
@@ -53,16 +54,20 @@ def processResults():
 
 def main():
     numberCheckers = 5
+    start_time = time.time()
 
-    env = simpy.Environment()
-
-    env.process(customerArrival(env))
     for i in range(numberCheckers):
-        env.process(checker(env))
+        checker()
 
-    env.run(until=180)
+    customerArrival()
+
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    print(f"Total time elapsed: {total_time} seconds")
     print(f"Total number of shoppers who completed shopping: {len(waitingShoppers)}")
     processResults()
 
 if __name__ == '__main__':
     main()
+
